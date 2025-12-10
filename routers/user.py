@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from schemas.user import LoginRequest, CreateUserRequest, LoginResponse, UserResponse
+from schemas.user import LoginRequest, LoginResponse, CreateUserRequest, UserResponse
 from cruds.user import create_user, get_user_by_email
 from db import get_db
 
