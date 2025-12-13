@@ -7,8 +7,7 @@ from fastapi import HTTPException
 
 from google.cloud import storage
 import google.auth
-from google.auth import iam
-from google.auth.transport.requests import Request as AuthRequest
+from google.auth import impersonated_credentials
 
 logger = logging.getLogger("gcs_utils")
 if not logger.handlers:
@@ -30,37 +29,36 @@ def generate_upload_signed_url(filename: str, content_type: str | None = None) -
         raise HTTPException(status_code=400, detail="JPEG画像のみアップロード可能です（.jpg/.jpeg）")
 
     bucket_name = _must_env("GCS_BUCKET_NAME")
-    sa_email = _must_env("GCP_SERVICE_ACCOUNT_EMAIL")
+    target_sa = _must_env("GCP_SERVICE_ACCOUNT_EMAIL")
 
-    # GCS上は拡張子 .jpg 固定（中身は jpeg）
+    # GCS 上は拡張子 .jpg 固定
     object_name = f"items/{uuid.uuid4()}.jpg"
 
     if content_type is None:
         guessed = mimetypes.guess_type(filename)[0]
         content_type = guessed or "image/jpeg"
 
-    # ★Cloud Run のデフォルト認証（トークン）を使って IAM Credentials API で署名する
-    base_credentials, _ = google.auth.default()
-    req = AuthRequest()
-    base_credentials.refresh(req)
+    # Cloud Run のデフォルト認証（トークン）をソースとして、target_sa を impersonate
+    source_creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
 
-    signer = iam.Signer(
-        request=req,
-        credentials=base_credentials,
-        service_account_email=sa_email,
+    signing_creds = impersonated_credentials.Credentials(
+        source_credentials=source_creds,
+        target_principal=target_sa,
+        target_scopes=["https://www.googleapis.com/auth/devstorage.read_write"],
+        lifetime=300,
     )
 
     client = storage.Client()
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(object_name)
 
-    logger.info("[gcs_utils] generating signed url via IAM Signer...")
+    logger.info("[gcs_utils] generating signed url via impersonated_credentials...")
     upload_url = blob.generate_signed_url(
         version="v4",
         expiration=timedelta(minutes=5),
         method="PUT",
         content_type=content_type,
-        credentials=signer,  # ← signer を渡すのがポイント
+        credentials=signing_creds,   # ★ここが重要
     )
     logger.info("[gcs_utils] signed url OK")
 
