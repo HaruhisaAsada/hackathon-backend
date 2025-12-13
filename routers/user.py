@@ -11,7 +11,7 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     user = get_user_by_email(db, login_data.email)
     if not user or not user.password == login_data.password:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    return LoginResponse(message="Login successful", username=user.username)
+    return LoginResponse(message="Login successful", username=user.username, email=user.email)
 
 @router.post("/register", response_model=UserResponse)
 async def register(register_data: CreateUserRequest, db: Session = Depends(get_db)):

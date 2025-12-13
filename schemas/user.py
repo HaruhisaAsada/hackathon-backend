@@ -16,6 +16,7 @@ class CreateUserRequest(BaseModel):
 class LoginResponse(BaseModel):
     message: str
     username: str
+    email: str
 
 #user response
 #登録後やログイン後に返すユーザ情報

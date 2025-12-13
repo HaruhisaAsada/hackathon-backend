@@ -26,7 +26,9 @@ def create_item(db: Session, item: ItemCreate) -> Item:
     db_item = Item(
         name=item.name,
         description=item.description,
-        category=item.category,
+        cat0=item.cat0,
+        cat1=item.cat1,
+        cat2=item.cat2,
         price=item.price,
         seller_email=item.seller_email,
         seller_username=item.seller_username,

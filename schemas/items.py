@@ -5,7 +5,9 @@ from datetime import datetime
 class ItemBase(BaseModel):
     name: str
     description: Optional[str] = None
-    category: Optional[str] = None
+    cat0: Optional[str] = None
+    cat1: Optional[str] = None
+    cat2: Optional[str] = None
     price: int
     image_path: Optional[str] = None
 
