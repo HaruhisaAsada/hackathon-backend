@@ -12,6 +12,8 @@ INSERT INTO users (email, username, password) VALUES
 CREATE TABLE items (
                     item_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     name VARCHAR(255) NOT NULL,
+                    description VARCHAR(255),
+                    category VARCHAR(255),
                     price INT NOT NULL,
                     seller_email VARCHAR(255) NOT NULL,
                     seller_username VARCHAR(255) NOT NULL,
@@ -19,6 +21,6 @@ CREATE TABLE items (
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 -- サンプルデータ
-INSERT INTO items (name, price, seller_email, seller_username, image_path) VALUES
-('dog', 10, 'asada@gmail.com', 'asada', '/images/a.jpg'),
-('bodysoap', 1, 'asuka.dev33@gmail.com', 'asu-bridge93', '/images/b.jpg');
+INSERT INTO items (name, description, category, price, seller_email, seller_username, image_path) VALUES
+('dog', 'a small charm of a dog', 'toy', 10, 'asada@gmail.com', 'asada', '/images/a.jpg'),
+('bodysoap','a bottle of body soap of LUSH, grapefruit scented','soap', 1, 'asuka.dev33@gmail.com', 'asu-bridge93', '/images/b.jpg');

@@ -7,6 +7,8 @@ class Item(Base):
 
     item_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(255), nullable=False)
+    description = Column(String(255))
+    category = Column(String(255))
     price = Column(Integer, nullable=False)
     seller_email = Column(String(255), nullable=False)
     seller_username = Column(String(255), nullable=False)

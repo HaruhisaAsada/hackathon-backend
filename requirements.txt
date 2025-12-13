@@ -5,3 +5,4 @@ SQLAlchemy==2.0.44
 uvicorn[standard]
 pymysql
 cryptography
+google-cloud-storage
