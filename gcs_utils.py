@@ -39,7 +39,7 @@ def generate_upload_signed_url(filename: str, content_type: str | None = None) -
         raise HTTPException(status_code=400, detail="JPEG画像のみアップロード可能です（.jpg / .jpeg）")
 
     # 2) 環境変数チェック
-    bucket_name = _env("GCP_GCS_BUCKET_NAME")
+    bucket_name = _env("GCS_BUCKET_NAME")
     sa_email = _env("GCP_SERVICE_ACCOUNT_EMAIL")
 
     # 3) GCS クライアント作成
