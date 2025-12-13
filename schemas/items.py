@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -19,7 +19,9 @@ class ItemCreate(ItemBase):
 class ItemUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    category: Optional[str] = None
+    cat0: Optional[str] = None
+    cat1: Optional[str] = None
+    cat2: Optional[str] = None
     price: Optional[int] = None
     image_path: Optional[str] = None
 
@@ -28,8 +30,7 @@ class ItemResponse(ItemBase):
     seller_email: str
     seller_username: str
     created_at: datetime
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UploadUrlRequest(BaseModel):
     filename: str
