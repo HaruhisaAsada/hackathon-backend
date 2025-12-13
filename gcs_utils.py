@@ -17,7 +17,7 @@ def generate_upload_signed_url(filename: str, content_type: str | None = None) -
         raise HTTPException(status_code=400, detail="JPEG画像のみアップロード可能です")
 
     client = get_storage_client()
-    bucket = client.bucket("fleamarketapp")
+    bucket = client.bucket(os.getenv("GCP_GCS_BUCKET_NAME"))
 
     # ファイル名から拡張子を取得しておく（image.jpg など）
     ext = os.path.splitext(filename)[1]
