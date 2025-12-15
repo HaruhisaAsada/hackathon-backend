@@ -29,7 +29,7 @@ def generate_upload_signed_url(filename: str, content_type: str | None = None) -
         raise HTTPException(status_code=400, detail="JPEG画像のみアップロード可能です（.jpg/.jpeg）")
 
     bucket_name = _must_env("GCS_BUCKET_NAME")
-    target_sa = _must_env("GCP_SERVICE_ACCOUNT_EMAIL")  # 999801388078-compute@developer.gserviceaccount.com
+    target_sa = _must_env("GCP_SERVICE_ACCOUNT_EMAIL")
 
     # GCS上は .jpg 固定
     object_name = f"items/{uuid.uuid4()}.jpg"
@@ -51,7 +51,7 @@ def generate_upload_signed_url(filename: str, content_type: str | None = None) -
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(object_name)
 
-    logger.info("[gcs_utils] generating signed url via impersonated_credentials...")  # ←ログ文言が変わる
+    logger.info("[gcs_utils] generating signed url via impersonated_credentials...")
     upload_url = blob.generate_signed_url(
         version="v4",
         expiration=timedelta(minutes=5),
