@@ -22,7 +22,7 @@ def purchase_item(db: Session, item_id: int, req: PurchaseRequest):
         buyer_email=req.buyer_email,
         buyer_username=req.buyer_username,
         image_path=item.image_path,
-        sold_at=getattr(item, "sold_at", None),
+        sold_at=item.created_at,
     )
     db.add(hist)
     db.delete(item)

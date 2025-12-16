@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
 
-#login request
 class LoginRequest(BaseModel):
     email: str 
     password: str
@@ -11,12 +10,14 @@ class CreateUserRequest(BaseModel):
     email: str
     password: str
     username: str
+    introduction: str | None = None
 
 #login response
 class LoginResponse(BaseModel):
     message: str
     username: str
     email: str
+    introduction: str | None = None
 
 #user response
 #登録後やログイン後に返すユーザ情報
@@ -24,3 +25,4 @@ class UserResponse(BaseModel):
     email: str
     username: str
     created_at: datetime
+    introduction: str | None = None
