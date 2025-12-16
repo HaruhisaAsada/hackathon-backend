@@ -9,7 +9,7 @@ app.include_router(purchase.router)  # アイテム関連のルーターを追�
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://hackathon-frontend-f1bve0ub4-haruhisaasadas-projects.vercel.app"],
+    allow_origins=["http://localhost:5173", "https://hackathon-frontend-omro5765h-haruhisaasadas-projects.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
