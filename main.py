@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 app.include_router(user.router)
 app.include_router(items.router)
-app.include_router(purchase.router)  # アイテム関連のルーターを追加
+app.include_router(purchase.router)
 
 app.add_middleware(
     CORSMiddleware,

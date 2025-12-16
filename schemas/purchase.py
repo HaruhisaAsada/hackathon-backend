@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict
+from datetime import datetime
 
 class PurchaseRequest(BaseModel):
     buyer_email: str
@@ -18,6 +19,6 @@ class PurchaseHistResponse(BaseModel):
     buyer_email: str
     buyer_username: str
     image_path: str | None = None
-    sold_at: str | None = None
-    bought_at: str | None = None
+    sold_at: datetime | None = None
+    bought_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
