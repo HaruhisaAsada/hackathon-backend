@@ -8,7 +8,7 @@ app.include_router(items.router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://hackathon-frontend-gyaf3gwcp-haruhisaasadas-projects.vercel.app"],
+    allow_origins=["http://localhost:5173", "https://hackathon-frontend-d07yfatjc-haruhisaasadas-projects.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -38,3 +38,11 @@ def create_item(db: Session, item: ItemCreate) -> Item:
     db.commit()
     db.refresh(db_item)
     return db_item
+
+def delete_item(db: Session, item_id: int) -> Optional[Item]:
+    item = db.query(Item).filter(Item.item_id == item_id).first()
+    if item is None:
+        return None
+    db.delete(item)
+    db.commit()
+    return item
