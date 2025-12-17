@@ -38,7 +38,6 @@ def generate_upload_signed_url(filename: str, content_type: str | None = None) -
         guessed = mimetypes.guess_type(filename)[0]
         content_type = guessed or "image/jpeg"
 
-    # ★ポイント：iam.Signer は使わない。impersonated_credentials を使う
     source_credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
     signing_credentials = impersonated_credentials.Credentials(
         source_credentials=source_credentials,
