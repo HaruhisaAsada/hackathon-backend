@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List
 from db import get_db
 from schemas.items import (ItemCreate, ItemResponse, UploadUrlRequest, UploadUrlResponse)
@@ -8,6 +9,7 @@ from cruds import items
 from cruds.items import get_items, get_item_by_id
 from models.items import Item
 from gcs_utils import generate_upload_signed_url
+from utils.embeddings import gemini_embed, vec_to_string_to_vector_arg
 
 router = APIRouter()
 
@@ -43,3 +45,52 @@ async def delete_item(item_id: int, db: Session = Depends(get_db)):
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
     return deleted
+
+@router.get("/items/search")
+async def search_items(q: str, k: int = 30, db: Session = Depends(get_db)):
+    # 1) クエリを埋め込み
+    qvec = await run_in_threadpool(gemini_embed, q, task_type="RETRIEVAL_QUERY", dims=768)
+    qvec_str = vec_to_string_to_vector_arg(qvec)
+
+    # 2) ベクトル検索（distが小さいほど近い）
+    sql = text("""
+        SELECT item_id, name, description, cat0, cat1, cat2, price, image_path,
+                cosine_distance(string_to_vector(:qvec), embedding) AS dist
+        FROM items
+        WHERE embedding IS NOT NULL
+        ORDER BY dist
+        LIMIT :k
+    """)
+    rows = db.execute(sql, {"qvec": qvec_str, "k": k}).mappings().all()
+    return list(rows)
+
+@router.post("/admin/backfill-embeddings")
+async def backfill_embeddings(limit: int = 20, db: Session = Depends(get_db)):
+    # 1) NULLの行を取る
+    items_ = db.execute(text("""
+        SELECT item_id, name,
+                COALESCE(description,'') AS description,
+                COALESCE(cat0,'') AS cat0,
+                COALESCE(cat1,'') AS cat1,
+                COALESCE(cat2,'') AS cat2
+        FROM items
+        WHERE embedding IS NULL
+        LIMIT :limit
+    """), {"limit": limit}).mappings().all()
+
+    updated = 0
+    for it in items_:
+        doc = f"{it['name']}\n{it['description']}\nカテゴリ: {it['cat0']}/{it['cat1']}/{it['cat2']}"
+        vec = await run_in_threadpool(gemini_embed, doc, task_type="RETRIEVAL_DOCUMENT", dims=768)
+        vstr = vec_to_string_to_vector_arg(vec)
+
+        db.execute(text("""
+            UPDATE items
+            SET embedding = string_to_vector(:v)
+            WHERE item_id = :id
+        """), {"v": vstr, "id": it["item_id"]})
+        updated += 1
+
+    db.commit()
+    return {"updated": updated}
+

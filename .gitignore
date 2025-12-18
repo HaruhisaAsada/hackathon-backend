@@ -13,4 +13,4 @@ pip-log.txt
 .pytype/
 *.log
 *.pid
-certs/
+backfill_embeddings.py

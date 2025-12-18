@@ -7,3 +7,5 @@ pymysql
 cryptography
 google-cloud-storage
 google-auth
+sentence_transformers
+numpy
