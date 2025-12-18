@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from models.items import Item
 from schemas.items import ItemCreate, ItemUpdate
+from sqlalchemy import text
+from utils.embeddings import gemini_embed, vec_to_string_to_vector_arg
 
 def get_items(db: Session):
     return db.query(Item).all()
@@ -37,7 +39,30 @@ def create_item(db: Session, item: ItemCreate) -> Item:
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
+    try:
+        doc = (
+            f"{db_item.name}\n"
+            f"{db_item.description or ''}\n"
+            f"カテゴリ: {db_item.cat0 or ''}/{db_item.cat1 or ''}/{db_item.cat2 or ''}"
+        )
+        vec = gemini_embed(doc, task_type="RETRIEVAL_DOCUMENT", dims=768)
+        vstr = vec_to_string_to_vector_arg(vec)
+
+        db.execute(
+            text("""
+                UPDATE items
+                SET embedding = string_to_vector(:v)
+                WHERE item_id = :id
+            """),
+            {"v": vstr, "id": db_item.item_id},
+        )
+        db.commit()
+    except Exception:
+        #埋め込みに失敗しても出品はする
+        db.rollback()
+
     return db_item
+
 
 def delete_item(db: Session, item_id: int) -> Optional[Item]:
     item = db.query(Item).filter(Item.item_id == item_id).first()

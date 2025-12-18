@@ -13,4 +13,3 @@ pip-log.txt
 .pytype/
 *.log
 *.pid
-backfill_embeddings.py

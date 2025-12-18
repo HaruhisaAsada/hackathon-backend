@@ -13,4 +13,3 @@ venv/
 .pytest_cache/
 tests/
 *.log
-backfill_embeddings.py
