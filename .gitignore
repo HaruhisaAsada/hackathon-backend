@@ -14,3 +14,4 @@ pip-log.txt
 *.log
 *.pid
 utils/pid_matcher.pkl
+tmp/pid_matcher.sqlite

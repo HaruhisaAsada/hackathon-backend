@@ -7,10 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.cloud import storage
 
 from routers import user, items, purchase
-from utils.pid_assigner import PIDAssigner
+from utils.pid_assigner import PIDAssigner, SQLitePIDAssigner
 
 PID_MATCHER_PATH = os.getenv("PID_MATCHER_PATH", "utils/pid_matcher.pkl")
 PID_MATCHER_GCS = os.getenv("PID_MATCHER_GCS")
+PID_MATCHER_SQLITE = os.getenv("PID_MATCHER_SQLITE")
 
 
 def _download_from_gcs(gs_uri: str, dst_path: str) -> None:
@@ -24,9 +25,13 @@ def _download_from_gcs(gs_uri: str, dst_path: str) -> None:
 
 
 def _resolve_matcher_path() -> Path:
+    if PID_MATCHER_SQLITE:
+        return Path(PID_MATCHER_SQLITE)
+
     path = Path(PID_MATCHER_PATH)
-    if PID_MATCHER_GCS and not str(path).startswith("/tmp/"):
-        return Path("/tmp/pid_matcher.pkl")
+    if PID_MATCHER_GCS:
+        suffix = Path(PID_MATCHER_GCS).suffix or path.suffix or ".pkl"
+        return Path("/tmp") / f"pid_matcher{suffix}"
     return path
 
 @asynccontextmanager
@@ -40,7 +45,10 @@ async def lifespan(app: FastAPI):
     if not matcher_path.exists():
         raise RuntimeError(f"PID matcher file not found: {matcher_path}")
 
-    app.state.pid_assigner = PIDAssigner(str(matcher_path))
+    if matcher_path.suffix in (".sqlite", ".db"):
+        app.state.pid_assigner = SQLitePIDAssigner(str(matcher_path))
+    else:
+        app.state.pid_assigner = PIDAssigner(str(matcher_path))
     yield
 
 
@@ -59,6 +67,7 @@ app.add_middleware(
         "http://localhost:5173",
         "https://hackathon-frontend-2i93y6emk-haruhisaasadas-projects.vercel.app",
     ],
+    allow_origin_regex=r"https://hackathon-frontend-.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
