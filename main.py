@@ -4,19 +4,45 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from google.cloud import storage
 
 from routers import user, items, purchase
 from utils.pid_assigner import PIDAssigner
 
 PID_MATCHER_PATH = os.getenv("PID_MATCHER_PATH", "utils/pid_matcher.pkl")
+PID_MATCHER_GCS = os.getenv("PID_MATCHER_GCS")
+
+
+def _download_from_gcs(gs_uri: str, dst_path: str) -> None:
+    if not gs_uri.startswith("gs://"):
+        raise ValueError(f"Invalid GCS URI: {gs_uri}")
+
+    bucket_name, blob_path = gs_uri.replace("gs://", "").split("/", 1)
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    bucket.blob(blob_path).download_to_filename(dst_path)
+
+
+def _resolve_matcher_path() -> Path:
+    path = Path(PID_MATCHER_PATH)
+    if PID_MATCHER_GCS and not str(path).startswith("/tmp/"):
+        return Path("/tmp/pid_matcher.pkl")
+    return path
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    matcher_path = Path(PID_MATCHER_PATH)
+    matcher_path = _resolve_matcher_path()
+
+    if PID_MATCHER_GCS:
+        if not matcher_path.exists():
+            _download_from_gcs(PID_MATCHER_GCS, str(matcher_path))
+
     if not matcher_path.exists():
         raise RuntimeError(f"PID matcher file not found: {matcher_path}")
+
     app.state.pid_assigner = PIDAssigner(str(matcher_path))
     yield
+
 
 
 app = FastAPI(lifespan=lifespan)
