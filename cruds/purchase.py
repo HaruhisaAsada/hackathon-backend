@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 from fastapi import HTTPException
 from models.items import Item
 from models.purchase_hist import PurchaseHist
@@ -8,7 +8,13 @@ from typing import List, Optional
 from datetime import datetime, timezone
 
 def purchase_item(db: Session, item_id: int, req: PurchaseRequest):
-    item = db.query(Item).filter(Item.item_id == item_id).with_for_update().first()
+    item = (
+        db.query(Item)
+        .options(defer(Item.embedding))
+        .filter(Item.item_id == item_id)
+        .with_for_update()
+        .first()
+    )
     if not item:
         raise HTTPException(status_code=404, detail="Item not found (maybe already sold)")
 
