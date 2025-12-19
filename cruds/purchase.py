@@ -7,7 +7,7 @@ from schemas.purchase import PurchaseRequest
 from typing import List, Optional
 from datetime import datetime, timezone
 
-def purchase_item(db: Session, item_id: int, req: PurchaseRequest):
+def purchase_item(db: Session, item_id: int, req: PurchaseRequest, recommender: Optional[object] = None):
     item = (
         db.query(Item)
         .options(defer(Item.embedding))
@@ -38,6 +38,7 @@ def purchase_item(db: Session, item_id: int, req: PurchaseRequest):
     db.add(hist)
     db.delete(item)
     db.commit()
+    update_recommendations(db, req.buyer_email, recommender)
     return {"ok": True, "message": "Purchased successfully"}
 
 def get_purchase_history(db: Session, buyer_email: str, limit: int = 100) -> List[PurchaseHist]:
