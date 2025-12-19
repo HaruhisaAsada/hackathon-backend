@@ -26,6 +26,7 @@ def purchase_item(db: Session, item_id: int, req: PurchaseRequest):
         image_path=item.image_path,
         sold_at=item.created_at,
         bought_at=datetime.now(timezone.utc),
+        pid=item.pid,
     )
     db.add(hist)
     db.delete(item)

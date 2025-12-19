@@ -23,3 +23,4 @@ class PurchaseHist(Base):
     image_path = Column(String(255))
     sold_at = Column(DateTime(timezone=True), nullable=False)
     bought_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    pid = Column(String(64))

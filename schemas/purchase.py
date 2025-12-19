@@ -21,4 +21,5 @@ class PurchaseHistResponse(BaseModel):
     image_path: str | None = None
     sold_at: datetime | None = None
     bought_at: datetime | None = None
+    pid: str | None = None
     model_config = ConfigDict(from_attributes=True)

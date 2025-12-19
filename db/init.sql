@@ -21,7 +21,9 @@ CREATE TABLE items (
                     seller_email VARCHAR(255) NOT NULL,
                     seller_username VARCHAR(255) NOT NULL,
                     image_path VARCHAR(255),
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    embedding VARCHAR(768),
+                    pid VARCHAR(64)
 );
 -- サンプルデータ
 INSERT INTO items (name, description, cat0, cat1, cat2, price, seller_email, seller_username, image_path) VALUES
@@ -44,4 +46,5 @@ CREATE TABLE purchase_hist (
     image_path VARCHAR(255),
     sold_at DATETIME NOT NULL,
     bought_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    pid VARCHAR(64)
 );

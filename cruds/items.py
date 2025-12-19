@@ -24,7 +24,7 @@ def get_items_by_seller(
         .all()
     )
 
-def create_item(db: Session, item: ItemCreate) -> Item:
+def create_item(db: Session, item: ItemCreate, pid=None) -> Item:
     db_item = Item(
         name=item.name,
         description=item.description,
@@ -35,6 +35,7 @@ def create_item(db: Session, item: ItemCreate) -> Item:
         seller_email=item.seller_email,
         seller_username=item.seller_username,
         image_path=item.image_path,
+        pid=pid,
     )
     db.add(db_item)
     db.commit()

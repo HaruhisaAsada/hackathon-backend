@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -43,8 +43,10 @@ async def read_item(item_id: int, db: Session = Depends(get_db)):
     return item
 
 @router.post("/items", response_model=ItemResponse)
-async def create_item(item: ItemCreate, db: Session = Depends(get_db)):
-    return await run_in_threadpool(items.create_item, db, item)
+async def create_item(item: ItemCreate, request: Request, db: Session = Depends(get_db)):
+    assigner = request.app.state.pid_assigner
+    m = await run_in_threadpool(assigner.assign, item.name, min_score=80.0)
+    return await run_in_threadpool(items.create_item, db, item, m.pid)
 
 @router.post("/items/upload-url", response_model=UploadUrlResponse)
 async def create_upload_url(payload: UploadUrlRequest):

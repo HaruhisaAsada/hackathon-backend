@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Integer, DateTime
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.sql import func
 from db import Base
 
@@ -16,3 +17,5 @@ class Item(Base):
     seller_username = Column(String(255), nullable=False)
     image_path = Column(String(255))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    embedding = Column(Vector(768))
+    pid = Column(String(64))
