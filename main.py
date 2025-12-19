@@ -37,6 +37,14 @@ def _resolve_matcher_path() -> Path:
         return Path("/tmp") / f"pid_matcher{suffix}"
     return path
 
+
+def _ensure_matcher_file(matcher_path: Path) -> None:
+    if matcher_path.exists():
+        return
+    if not PID_MATCHER_GCS:
+        return
+    _download_from_gcs(PID_MATCHER_GCS, str(matcher_path))
+
 def _resolve_rec_path(gs_uri: str, fallback_name: str) -> Path:
     if not gs_uri.startswith("gs://"):
         raise ValueError(f"Invalid GCS URI: {gs_uri}")
@@ -57,9 +65,7 @@ def _ensure_recommender_artifacts() -> dict[str, Path]:
 async def lifespan(app: FastAPI):
     matcher_path = _resolve_matcher_path()
 
-    if PID_MATCHER_GCS:
-        if not matcher_path.exists():
-            _download_from_gcs(PID_MATCHER_GCS, str(matcher_path))
+    _ensure_matcher_file(matcher_path)
 
     if not matcher_path.exists():
         raise RuntimeError(f"PID matcher file not found: {matcher_path}")
