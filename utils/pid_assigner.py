@@ -30,6 +30,23 @@ class PIDMatch:
     score: float
     source: str
 
+
+class LazyPIDAssigner:
+    def __init__(self, factory):
+        self._factory = factory
+        self._assigner = None
+        self._lock = threading.Lock()
+
+    def _get_assigner(self):
+        if self._assigner is None:
+            with self._lock:
+                if self._assigner is None:
+                    self._assigner = self._factory()
+        return self._assigner
+
+    def assign(self, *args, **kwargs):
+        return self._get_assigner().assign(*args, **kwargs)
+
 class PIDAssigner:
     def __init__(
         self,

@@ -8,7 +8,7 @@ from google.cloud import storage
 
 from routers import user, items, purchase
 from db import engine
-from utils.pid_assigner import PIDAssigner, SQLitePIDAssigner, MySQLPIDAssigner
+from utils.pid_assigner import PIDAssigner, SQLitePIDAssigner, MySQLPIDAssigner, LazyPIDAssigner
 
 PID_MATCHER_PATH = os.getenv("PID_MATCHER_PATH", "utils/pid_matcher.pkl")
 PID_MATCHER_GCS = os.getenv("PID_MATCHER_GCS")
@@ -66,35 +66,38 @@ def _ensure_recommender_artifacts() -> dict[str, Path]:
         _download_from_gcs(REC_WV_GCS, str(paths["wv"]))
     return paths
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+def _build_pid_assigner():
     if PID_MATCHER_MYSQL:
-        app.state.pid_assigner = MySQLPIDAssigner(
+        return MySQLPIDAssigner(
             engine,
             max_candidates=PID_MAX_CANDIDATES,
             max_tokens=PID_MAX_TOKENS,
             token_limit=PID_TOKEN_LIMIT,
         )
-    else:
-        matcher_path = _resolve_matcher_path()
-        _ensure_matcher_file(matcher_path)
-        if not matcher_path.exists():
-            raise RuntimeError(f"PID matcher file not found: {matcher_path}")
 
-        if matcher_path.suffix in (".sqlite", ".db"):
-            app.state.pid_assigner = SQLitePIDAssigner(
-                str(matcher_path),
-                max_candidates=PID_MAX_CANDIDATES,
-                max_tokens=PID_MAX_TOKENS,
-                token_limit=PID_TOKEN_LIMIT,
-            )
-        else:
-            app.state.pid_assigner = PIDAssigner(
-                str(matcher_path),
-                max_candidates=PID_MAX_CANDIDATES,
-                max_tokens=PID_MAX_TOKENS,
-                token_limit=PID_TOKEN_LIMIT,
-            )
+    matcher_path = _resolve_matcher_path()
+    _ensure_matcher_file(matcher_path)
+    if not matcher_path.exists():
+        raise RuntimeError(f"PID matcher file not found: {matcher_path}")
+
+    if matcher_path.suffix in (".sqlite", ".db"):
+        return SQLitePIDAssigner(
+            str(matcher_path),
+            max_candidates=PID_MAX_CANDIDATES,
+            max_tokens=PID_MAX_TOKENS,
+            token_limit=PID_TOKEN_LIMIT,
+        )
+    return PIDAssigner(
+        str(matcher_path),
+        max_candidates=PID_MAX_CANDIDATES,
+        max_tokens=PID_MAX_TOKENS,
+        token_limit=PID_TOKEN_LIMIT,
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.pid_assigner = LazyPIDAssigner(_build_pid_assigner)
 
     if REC_LOAD_ON_STARTUP:
         from utils.recommender import Recommender
