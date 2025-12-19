@@ -90,7 +90,7 @@ class PIDAssigner:
                     return out
         return out
 
-    def assign(self, raw_title: str, *, min_score: float = 50.0) -> PIDMatch:
+    def assign(self, raw_title: str, *, min_score: float = 0.0) -> PIDMatch:
         q = normalize_title(raw_title)
         if not q:
             return PIDMatch(None, 0.0, "unmatched")
@@ -195,7 +195,7 @@ class SQLitePIDAssigner:
                 pids.append(row[1])
         return titles, pids
 
-    def assign(self, raw_title: str, *, min_score: float = 50.0) -> PIDMatch:
+    def assign(self, raw_title: str, *, min_score: float = 0.0) -> PIDMatch:
         q = normalize_title(raw_title)
         if not q:
             return PIDMatch(None, 0.0, "unmatched")
@@ -314,7 +314,7 @@ class MySQLPIDAssigner:
                         pids.append(row[1])
         return titles, pids
 
-    def assign(self, raw_title: str, *, min_score: float = 50.0) -> PIDMatch:
+    def assign(self, raw_title: str, *, min_score: float = 0.0) -> PIDMatch:
         q = normalize_title(raw_title)
         if not q:
             return PIDMatch(None, 0.0, "unmatched")

@@ -4,10 +4,8 @@ python-dotenv==1.2.1
 SQLAlchemy==2.0.44
 uvicorn[standard]
 pymysql
-cryptography
 google-cloud-storage
 google-auth
-numpy
 pgvector
 rapidfuzz
 gensim
