@@ -26,3 +26,7 @@ class UserResponse(BaseModel):
     username: str
     created_at: datetime
     introduction: str | None = None
+
+class RecPidsResponse(BaseModel):
+    rec_pids: list[str] | None = None
+    rec_updated_at: datetime | None = None

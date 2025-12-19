@@ -14,8 +14,24 @@ from utils.embeddings import gemini_embed, vec_to_string_to_vector_arg
 router = APIRouter()
 
 @router.get("/items", response_model=list[ItemResponse])
-async def read_items(db: Session = Depends(get_db)):
-    return await run_in_threadpool(get_items, db)
+async def read_items(rec_pids: str | None = None, db: Session = Depends(get_db)):
+    items_list = await run_in_threadpool(get_items, db)
+    if not rec_pids:
+        return items_list
+
+    pids = [p.strip() for p in rec_pids.split(",") if p.strip()]
+    if not pids:
+        return items_list
+
+    rank = {pid: i for i, pid in enumerate(pids)}
+    default_rank = len(pids) + 1
+    items_list.sort(
+        key=lambda item: (
+            rank.get(item.pid, default_rank),
+            -(item.created_at.timestamp() if item.created_at else 0),
+        )
+    )
+    return items_list
 
 @router.get("/items/search")
 async def search_items(q: str, k: int = 30, db: Session = Depends(get_db)):
@@ -65,4 +81,3 @@ async def delete_item(item_id: int, db: Session = Depends(get_db)):
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
     return deleted
-

@@ -5,6 +5,12 @@ from schemas.user import CreateUserRequest
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
 
+def get_user_rec_pids(db: Session, email: str):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return None, None
+    return user.rec_pids, user.rec_updated_at
+
 def create_user(db: Session, user: CreateUserRequest):
     user = User(email=user.email, password=user.password, username=user.username, introduction=user.introduction)
     db.add(user)

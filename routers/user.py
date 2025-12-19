@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from schemas.user import LoginRequest, LoginResponse, CreateUserRequest, UserResponse
-from cruds.user import create_user, get_user_by_email
+from schemas.user import LoginRequest, LoginResponse, CreateUserRequest, UserResponse, RecPidsResponse
+from cruds.user import create_user, get_user_by_email, get_user_rec_pids
 from db import get_db
 
 router = APIRouter()
@@ -27,3 +27,10 @@ async def register(register_data: CreateUserRequest, db: Session = Depends(get_d
         introduction=user.introduction,
         created_at=user.created_at
     )
+
+@router.get("/users/rec-pids", response_model=RecPidsResponse)
+async def get_rec_pids(email: str, db: Session = Depends(get_db)):
+    rec_pids, rec_updated_at = get_user_rec_pids(db, email)
+    if rec_pids is None and rec_updated_at is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return RecPidsResponse(rec_pids=rec_pids, rec_updated_at=rec_updated_at)
