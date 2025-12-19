@@ -8,13 +8,13 @@ from google.cloud import storage
 
 from routers import user, items, purchase
 from utils.pid_assigner import PIDAssigner, SQLitePIDAssigner
-from utils.recommender import Recommender
 
 PID_MATCHER_PATH = os.getenv("PID_MATCHER_PATH", "utils/pid_matcher.pkl")
 PID_MATCHER_GCS = os.getenv("PID_MATCHER_GCS")
 PID_MATCHER_SQLITE = os.getenv("PID_MATCHER_SQLITE")
 
 REC_WV_GCS = os.getenv("REC_WV_GCS")
+REC_LOAD_ON_STARTUP = os.getenv("REC_LOAD_ON_STARTUP", "false").lower() in ("1", "true", "yes")
 
 
 def _download_from_gcs(gs_uri: str, dst_path: str) -> None:
@@ -69,11 +69,13 @@ async def lifespan(app: FastAPI):
     else:
         app.state.pid_assigner = PIDAssigner(str(matcher_path))
 
-    rec_paths = _ensure_recommender_artifacts()
-    if rec_paths:
-        app.state.recommender = Recommender(
-            wv_kv_path=str(rec_paths["wv"]),
-        )
+    if REC_LOAD_ON_STARTUP:
+        from utils.recommender import Recommender
+        rec_paths = _ensure_recommender_artifacts()
+        if rec_paths:
+            app.state.recommender = Recommender(
+                wv_kv_path=str(rec_paths["wv"]),
+            )
     yield
 
 

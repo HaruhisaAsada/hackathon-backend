@@ -6,7 +6,6 @@ from models.user import User
 from schemas.purchase import PurchaseRequest
 from typing import List, Optional
 from datetime import datetime, timezone
-from utils.recommender import Recommender
 
 def purchase_item(db: Session, item_id: int, req: PurchaseRequest):
     item = db.query(Item).filter(Item.item_id == item_id).with_for_update().first()
@@ -57,7 +56,7 @@ def get_recent_purchase_item_ids(db: Session, buyer_email: str, limit: int = 20)
 def update_recommendations(
     db: Session,
     buyer_email: str,
-    recommender: Optional[Recommender],
+    recommender: Optional[object],
     *,
     history_limit: int = 50,
     topn: int = 200,
