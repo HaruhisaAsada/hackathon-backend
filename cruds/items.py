@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 from typing import List, Optional
 from models.items import Item
 from schemas.items import ItemCreate, ItemUpdate
@@ -6,10 +6,15 @@ from sqlalchemy import text
 from utils.embeddings import gemini_embed, vec_to_string_to_vector_arg
 
 def get_items(db: Session):
-    return db.query(Item).all()
+    return db.query(Item).options(defer(Item.embedding)).all()
 
 def get_item_by_id(db: Session, item_id: str):
-    return db.query(Item).filter(Item.item_id == item_id).first()
+    return (
+        db.query(Item)
+        .options(defer(Item.embedding))
+        .filter(Item.item_id == item_id)
+        .first()
+    )
 
 
 def get_items_by_seller(
@@ -17,6 +22,7 @@ def get_items_by_seller(
 ) -> List[Item]:
     return (
         db.query(Item)
+        .options(defer(Item.embedding))
         .filter(Item.seller_email == seller_email)
         .order_by(Item.created_at.desc())
         .offset(skip)
@@ -66,7 +72,12 @@ def create_item(db: Session, item: ItemCreate, pid=None) -> Item:
 
 
 def delete_item(db: Session, item_id: int) -> Optional[Item]:
-    item = db.query(Item).filter(Item.item_id == item_id).first()
+    item = (
+        db.query(Item)
+        .options(defer(Item.embedding))
+        .filter(Item.item_id == item_id)
+        .first()
+    )
     if item is None:
         return None
     db.delete(item)
