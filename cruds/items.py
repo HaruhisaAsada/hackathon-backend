@@ -44,14 +44,15 @@ def create_item(db: Session, item: ItemCreate, pid=None) -> Item:
         pid=pid,
     )
     db.add(db_item)
+    db.flush()
+    item_id = db_item.item_id
+    doc = (
+        f"{item.name}\n"
+        f"{item.description or ''}\n"
+        f"カテゴリ: {item.cat0 or ''}/{item.cat1 or ''}/{item.cat2 or ''}"
+    )
     db.commit()
-    db.refresh(db_item)
     try:
-        doc = (
-            f"{db_item.name}\n"
-            f"{db_item.description or ''}\n"
-            f"カテゴリ: {db_item.cat0 or ''}/{db_item.cat1 or ''}/{db_item.cat2 or ''}"
-        )
         vec = gemini_embed(doc, task_type="RETRIEVAL_DOCUMENT", dims=768)
         vstr = vec_to_string_to_vector_arg(vec)
 
@@ -61,14 +62,14 @@ def create_item(db: Session, item: ItemCreate, pid=None) -> Item:
                 SET embedding = string_to_vector(:v)
                 WHERE item_id = :id
             """),
-            {"v": vstr, "id": db_item.item_id},
+            {"v": vstr, "id": item_id},
         )
         db.commit()
     except Exception:
         #埋め込みに失敗しても出品はする
         db.rollback()
 
-    return db_item
+    return get_item_by_id(db, item_id) or db_item
 
 
 def delete_item(db: Session, item_id: int) -> Optional[Item]:
