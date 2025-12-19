@@ -31,23 +31,40 @@ class PIDMatch:
     source: str
 
 class PIDAssigner:
-    def __init__(self, matcher_pkl: str, *, max_candidates: int = 20000):
+    def __init__(
+        self,
+        matcher_pkl: str,
+        *,
+        max_candidates: int = 20000,
+        max_tokens: int = 0,
+        token_limit: int = 0,
+    ):
         with open(matcher_pkl, "rb") as f:
             obj = pickle.load(f)
         self.titles_flat: List[str] = obj["titles_flat"]
         self.pids_flat: List[str] = obj["pids_flat"]
         self.token2idx: Dict[str, List[int]] = obj["token2idx"]
         self.max_candidates = max_candidates
+        self.max_tokens = max_tokens
+        self.token_limit = token_limit
+
+    def _limit_tokens(self, toks: List[str]) -> List[str]:
+        if self.max_tokens and len(toks) > self.max_tokens:
+            return toks[: self.max_tokens]
+        return toks
 
     def _candidate_indices(self, q: str) -> List[int]:
-        toks = tokenize(q)
+        toks = self._limit_tokens(tokenize(q))
         if not toks:
             return []
 
         seen = set()
         out = []
         for tok in toks:
-            for i in self.token2idx.get(tok, []):
+            idxs = self.token2idx.get(tok, [])
+            if self.token_limit and len(idxs) > self.token_limit:
+                idxs = idxs[: self.token_limit]
+            for i in idxs:
                 if i in seen:
                     continue
                 seen.add(i)
@@ -81,9 +98,18 @@ class PIDAssigner:
 
 
 class SQLitePIDAssigner:
-    def __init__(self, db_path: str, *, max_candidates: int = 20000):
+    def __init__(
+        self,
+        db_path: str,
+        *,
+        max_candidates: int = 20000,
+        max_tokens: int = 0,
+        token_limit: int = 0,
+    ):
         self.db_path = db_path
         self.max_candidates = max_candidates
+        self.max_tokens = max_tokens
+        self.token_limit = token_limit
         self._conn = sqlite3.connect(
             f"file:{db_path}?mode=ro",
             uri=True,
@@ -91,8 +117,13 @@ class SQLitePIDAssigner:
         )
         self._lock = threading.Lock()
 
+    def _limit_tokens(self, toks: List[str]) -> List[str]:
+        if self.max_tokens and len(toks) > self.max_tokens:
+            return toks[: self.max_tokens]
+        return toks
+
     def _candidate_indices(self, q: str) -> List[int]:
-        toks = tokenize(q)
+        toks = self._limit_tokens(tokenize(q))
         if not toks:
             return []
 
@@ -112,7 +143,7 @@ class SQLitePIDAssigner:
                     continue
                 cur.execute(
                     "SELECT idx FROM token_index WHERE token_id=? LIMIT ?",
-                    (token_id, self.max_candidates),
+                    (token_id, self.token_limit or self.max_candidates),
                 )
                 for (idx,) in cur.fetchall():
                     if idx in seen:
@@ -173,12 +204,26 @@ class SQLitePIDAssigner:
 
 
 class MySQLPIDAssigner:
-    def __init__(self, engine, *, max_candidates: int = 20000):
+    def __init__(
+        self,
+        engine,
+        *,
+        max_candidates: int = 20000,
+        max_tokens: int = 0,
+        token_limit: int = 0,
+    ):
         self.engine = engine
         self.max_candidates = max_candidates
+        self.max_tokens = max_tokens
+        self.token_limit = token_limit
+
+    def _limit_tokens(self, toks: List[str]) -> List[str]:
+        if self.max_tokens and len(toks) > self.max_tokens:
+            return toks[: self.max_tokens]
+        return toks
 
     def _candidate_indices(self, q: str) -> List[int]:
-        toks = tokenize(q)
+        toks = self._limit_tokens(tokenize(q))
         if not toks:
             return []
 
@@ -203,7 +248,7 @@ class MySQLPIDAssigner:
                         "SELECT idx FROM pid_matcher_token_index "
                         "WHERE token_id = :token_id LIMIT :limit"
                     ),
-                    {"token_id": token_id, "limit": self.max_candidates},
+                    {"token_id": token_id, "limit": self.token_limit or self.max_candidates},
                 ).fetchall()
                 for (idx,) in rows:
                     if idx in seen:

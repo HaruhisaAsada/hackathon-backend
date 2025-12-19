@@ -14,6 +14,9 @@ PID_MATCHER_PATH = os.getenv("PID_MATCHER_PATH", "utils/pid_matcher.pkl")
 PID_MATCHER_GCS = os.getenv("PID_MATCHER_GCS")
 PID_MATCHER_SQLITE = os.getenv("PID_MATCHER_SQLITE")
 PID_MATCHER_MYSQL = os.getenv("PID_MATCHER_MYSQL", "false").lower() in ("1", "true", "yes")
+PID_MAX_CANDIDATES = int(os.getenv("PID_MAX_CANDIDATES", "3000"))
+PID_MAX_TOKENS = int(os.getenv("PID_MAX_TOKENS", "12"))
+PID_TOKEN_LIMIT = int(os.getenv("PID_TOKEN_LIMIT", "200"))
 
 REC_WV_GCS = os.getenv("REC_WV_GCS")
 REC_LOAD_ON_STARTUP = os.getenv("REC_LOAD_ON_STARTUP", "false").lower() in ("1", "true", "yes")
@@ -66,7 +69,12 @@ def _ensure_recommender_artifacts() -> dict[str, Path]:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if PID_MATCHER_MYSQL:
-        app.state.pid_assigner = MySQLPIDAssigner(engine)
+        app.state.pid_assigner = MySQLPIDAssigner(
+            engine,
+            max_candidates=PID_MAX_CANDIDATES,
+            max_tokens=PID_MAX_TOKENS,
+            token_limit=PID_TOKEN_LIMIT,
+        )
     else:
         matcher_path = _resolve_matcher_path()
         _ensure_matcher_file(matcher_path)
@@ -74,9 +82,19 @@ async def lifespan(app: FastAPI):
             raise RuntimeError(f"PID matcher file not found: {matcher_path}")
 
         if matcher_path.suffix in (".sqlite", ".db"):
-            app.state.pid_assigner = SQLitePIDAssigner(str(matcher_path))
+            app.state.pid_assigner = SQLitePIDAssigner(
+                str(matcher_path),
+                max_candidates=PID_MAX_CANDIDATES,
+                max_tokens=PID_MAX_TOKENS,
+                token_limit=PID_TOKEN_LIMIT,
+            )
         else:
-            app.state.pid_assigner = PIDAssigner(str(matcher_path))
+            app.state.pid_assigner = PIDAssigner(
+                str(matcher_path),
+                max_candidates=PID_MAX_CANDIDATES,
+                max_tokens=PID_MAX_TOKENS,
+                token_limit=PID_TOKEN_LIMIT,
+            )
 
     if REC_LOAD_ON_STARTUP:
         from utils.recommender import Recommender
