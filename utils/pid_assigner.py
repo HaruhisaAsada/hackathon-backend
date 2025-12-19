@@ -73,7 +73,7 @@ class PIDAssigner:
                     return out
         return out
 
-    def assign(self, raw_title: str, *, min_score: float = 80.0) -> PIDMatch:
+    def assign(self, raw_title: str, *, min_score: float = 50.0) -> PIDMatch:
         q = normalize_title(raw_title)
         if not q:
             return PIDMatch(None, 0.0, "unmatched")
@@ -178,7 +178,7 @@ class SQLitePIDAssigner:
                 pids.append(row[1])
         return titles, pids
 
-    def assign(self, raw_title: str, *, min_score: float = 80.0) -> PIDMatch:
+    def assign(self, raw_title: str, *, min_score: float = 50.0) -> PIDMatch:
         q = normalize_title(raw_title)
         if not q:
             return PIDMatch(None, 0.0, "unmatched")
@@ -187,20 +187,33 @@ class SQLitePIDAssigner:
         if not idxs:
             return PIDMatch(None, 0.0, "unmatched")
 
-        titles, pids = self._fetch_candidates(idxs)
-        if not titles:
+        best_pid = None
+        best_score = 0.0
+        chunk_size = 1000
+        with self._lock:
+            cur = self._conn.cursor()
+            for i in range(0, len(idxs), chunk_size):
+                chunk = idxs[i:i + chunk_size]
+                placeholders = ",".join("?" for _ in chunk)
+                cur.execute(
+                    f"SELECT idx, title, pid FROM items WHERE idx IN ({placeholders})",
+                    chunk,
+                )
+                for _, title, pid in cur.fetchall():
+                    score = fuzz.token_set_ratio(q, title)
+                    if score > best_score:
+                        best_score = score
+                        best_pid = pid
+            cur.close()
+
+        if best_pid is None:
             return PIDMatch(None, 0.0, "unmatched")
 
-        m = process.extractOne(q, titles, scorer=fuzz.token_set_ratio)
-        if m is None:
-            return PIDMatch(None, 0.0, "unmatched")
-
-        best_title, score, pos = m
+        score = best_score
         if score < min_score:
             return PIDMatch(None, float(score), "unmatched")
 
-        pid = pids[pos]
-        return PIDMatch(pid, float(score), "rapidfuzz-sqlite")
+        return PIDMatch(best_pid, float(score), "rapidfuzz-sqlite")
 
 
 class MySQLPIDAssigner:
@@ -284,7 +297,7 @@ class MySQLPIDAssigner:
                         pids.append(row[1])
         return titles, pids
 
-    def assign(self, raw_title: str, *, min_score: float = 80.0) -> PIDMatch:
+    def assign(self, raw_title: str, *, min_score: float = 50.0) -> PIDMatch:
         q = normalize_title(raw_title)
         if not q:
             return PIDMatch(None, 0.0, "unmatched")
@@ -293,17 +306,30 @@ class MySQLPIDAssigner:
         if not idxs:
             return PIDMatch(None, 0.0, "unmatched")
 
-        titles, pids = self._fetch_candidates(idxs)
-        if not titles:
+        best_pid = None
+        best_score = 0.0
+        chunk_size = 1000
+        with self.engine.connect() as conn:
+            for i in range(0, len(idxs), chunk_size):
+                chunk = idxs[i:i + chunk_size]
+                rows = conn.execute(
+                    text(
+                        "SELECT title, pid FROM pid_matcher_items "
+                        "WHERE idx IN :idxs"
+                    ).bindparams(bindparam("idxs", expanding=True)),
+                    {"idxs": chunk},
+                ).fetchall()
+                for title, pid in rows:
+                    score = fuzz.token_set_ratio(q, title)
+                    if score > best_score:
+                        best_score = score
+                        best_pid = pid
+
+        if best_pid is None:
             return PIDMatch(None, 0.0, "unmatched")
 
-        m = process.extractOne(q, titles, scorer=fuzz.token_set_ratio)
-        if m is None:
-            return PIDMatch(None, 0.0, "unmatched")
-
-        best_title, score, pos = m
+        score = best_score
         if score < min_score:
             return PIDMatch(None, float(score), "unmatched")
 
-        pid = pids[pos]
-        return PIDMatch(pid, float(score), "rapidfuzz-mysql")
+        return PIDMatch(best_pid, float(score), "rapidfuzz-mysql")
