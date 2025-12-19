@@ -14,4 +14,6 @@ venv/
 tests/
 *.log
 utils/pid_matcher.pkl
+utils/build_pid_matcher_sqlite.py
 tmp/pid_matcher.sqlite
+tmp/*.sqlite

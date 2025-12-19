@@ -7,11 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.cloud import storage
 
 from routers import user, items, purchase
-from utils.pid_assigner import PIDAssigner, SQLitePIDAssigner
+from db import engine
+from utils.pid_assigner import PIDAssigner, SQLitePIDAssigner, MySQLPIDAssigner
 
 PID_MATCHER_PATH = os.getenv("PID_MATCHER_PATH", "utils/pid_matcher.pkl")
 PID_MATCHER_GCS = os.getenv("PID_MATCHER_GCS")
 PID_MATCHER_SQLITE = os.getenv("PID_MATCHER_SQLITE")
+PID_MATCHER_MYSQL = os.getenv("PID_MATCHER_MYSQL", "false").lower() in ("1", "true", "yes")
 
 REC_WV_GCS = os.getenv("REC_WV_GCS")
 REC_LOAD_ON_STARTUP = os.getenv("REC_LOAD_ON_STARTUP", "false").lower() in ("1", "true", "yes")
@@ -63,17 +65,18 @@ def _ensure_recommender_artifacts() -> dict[str, Path]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    matcher_path = _resolve_matcher_path()
-
-    _ensure_matcher_file(matcher_path)
-
-    if not matcher_path.exists():
-        raise RuntimeError(f"PID matcher file not found: {matcher_path}")
-
-    if matcher_path.suffix in (".sqlite", ".db"):
-        app.state.pid_assigner = SQLitePIDAssigner(str(matcher_path))
+    if PID_MATCHER_MYSQL:
+        app.state.pid_assigner = MySQLPIDAssigner(engine)
     else:
-        app.state.pid_assigner = PIDAssigner(str(matcher_path))
+        matcher_path = _resolve_matcher_path()
+        _ensure_matcher_file(matcher_path)
+        if not matcher_path.exists():
+            raise RuntimeError(f"PID matcher file not found: {matcher_path}")
+
+        if matcher_path.suffix in (".sqlite", ".db"):
+            app.state.pid_assigner = SQLitePIDAssigner(str(matcher_path))
+        else:
+            app.state.pid_assigner = PIDAssigner(str(matcher_path))
 
     if REC_LOAD_ON_STARTUP:
         from utils.recommender import Recommender
