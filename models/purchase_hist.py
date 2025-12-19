@@ -17,10 +17,10 @@ class PurchaseHist(Base):
 
     seller_email = Column(String(255), nullable=False)
     seller_username = Column(String(255), nullable=False)
-    buyer_email = Column(String(255), nullable=False)
-    buyer_username = Column(String(255), nullable=False)
+    buyer_email = Column(String(255), nullable=False, index=True)
+    buyer_username = Column(String(255), nullable=False, index=True)
 
     image_path = Column(String(255))
     sold_at = Column(DateTime(timezone=True), nullable=False)
-    bought_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    bought_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     pid = Column(String(64))
