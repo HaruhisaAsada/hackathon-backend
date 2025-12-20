@@ -122,7 +122,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://hackathon-frontend-l6isbymy5-haruhisaasadas-projects.vercel.app",
+        "https://hackathon-frontend-57xyqp45j-haruhisaasadas-projects.vercel.app",
     ],
     allow_origin_regex=r"https://hackathon-frontend-.*\.vercel\.app",
     allow_credentials=True,
